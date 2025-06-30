@@ -24,7 +24,7 @@ class SingleRootFile(object):
 
     def __del__(self):
         if SingleRootFile.__instance:
-            if SingleRootFile.__instance.root_file:
+            if SingleRootFile.__instance.root_file.IsOpen():
                 log.info(f'closing {SingleRootFile.__instance.root_file.GetName()}')
                 SingleRootFile.__instance.close()
         
