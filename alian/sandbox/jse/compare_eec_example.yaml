@@ -1,0 +1,72 @@
+# compare_eec_example.yaml
+# Usage: python compare_eec.py --config compare_eec_example.yaml [--show] [--no-save]
+# ---------------------------------------------------------------------------
+# Adjust paths/labels to match your gen_KITP_LundEEC.sh output directories.
+
+output_dir: figures/comparison
+formats: [pdf, png]
+
+# Label of the reference run (used for ratios).
+# Must match one of the labels below.
+reference: "pp (QCD)"
+
+runs:
+  - path: py-hardQCD_pthat90_R06_pt90_99_N10000_pp
+    label: "pp (QCD)"
+    color: black
+
+  - path: py-hardQCDbeauty_pthat90_R06_pt90_99_N10000_ppB
+    label: "pp (beauty)"
+    color: tab:blue
+
+  # add more runs as needed:
+  # - path: py-hardQCD_pthat90_R06_pt90_99_N50000_pp
+  #   label: "pp (QCD, high stats)"
+  #   color: tab:orange
+
+# EEC selections to plot.
+# Use 'threshold_ktX' shorthand for selection='threshold' with kt_cut=X.
+selections:
+  - threshold_kt0
+  - threshold_kt1
+  - threshold_kt2
+  - max_kt
+  - soft_drop_z>0.1
+  - soft_drop_z>0.2
+  - soft_drop_z>0.3
+  - symmetric_z>0.3
+
+# Which EEC histogram columns to include in each plot.
+quantities:
+  - eec_all
+  - eec_AA
+  # - eec_BB
+  # - eec_AB
+
+eec:
+  plot_modes:
+    - overlay       # all runs on one set of axes per selection
+    - ratio         # each run / reference
+    # - side_by_side  # grid: rows=runs, columns=quantities
+  xlim: [1.0e-2, 1.0]      # x-axis range as ΔR values (converted to ln(ΔR) internally)
+  ylim: [1.0e-2, 1.0]      # y-axis range for overlay and side_by_side
+  ratio_ylim: [0.0, 2.0]   # y-axis range for ratio plots (omit to use ylim)
+
+# Statistical uncertainty bands (σ ≈ sqrt(h/n_jets) per bin).
+# Shown as fill_between with alpha=0.15 on overlay/side_by_side,
+# and as error-propagated band on ratio plots.
+uncertainties: true
+
+lund:
+  types:
+    - density         # _lundplane.npy         (weight = 1 per splitting)
+    - weighted        # _lundplane_weighted.npy (weight = pT_A*pT_B/pT_jet²)
+    - local_weighted  # _lundplane_localweighted.npy (weight = pT_A*pT_B/pT_pair²)
+                      # only present if run with --lund-local-weight
+  plot_modes:
+    - individual    # one panel per run
+    - ratio         # log(run / reference), RdBu_r colormap, one figure per pair
+
+  # Lund ratio options:
+  ratio_min_count: 5      # mask bins where reference has fewer counts (white = masked)
+  show_significance: true # add second panel: (A-B)/sqrt(A+B)  [Poisson sigma]
