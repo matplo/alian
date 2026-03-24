@@ -57,6 +57,7 @@ python lund_eec.py $mode_args \
 --kt-cuts $kt_cuts \
 --kappa-cuts $kappa_cuts \
 --pt-particle-min $pt_particle_min \
+--inclusive-eec \
 --max-kt-eec \
 --soft-drop-eec --z-sd $z_sd \
 --symmetric-eec --z-sym $z_sym --z-sym-kt-cut $z_sym_kt_cut \

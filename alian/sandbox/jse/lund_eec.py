@@ -234,7 +234,8 @@ def process_jet(jet, lund_gen, eec_accums, lund_accum, kt_cuts, kappa_cuts,
                 eec_maxkt=None, eec_maxkt_thr=None,
                 eec_sd_dict=None, lund_accum_w=None,
                 eec_sym=None, z_sym=0.3, z_sym_kt_cut=0.0,
-                lund_accum_lw=None, pt_particle_min=0.0):
+                lund_accum_lw=None, pt_particle_min=0.0,
+                eec_inclusive=None):
 	"""
 	Run the Lund + E2C analysis for a single jet.
 
@@ -256,6 +257,7 @@ def process_jet(jet, lund_gen, eec_accums, lund_accum, kt_cuts, kappa_cuts,
 	z_sym_kt_cut     : float              additional kT cut for symmetric splittings (default 0.0)
 	lund_accum_lw    : LundPlaneAccum or None  local-weight Lund plane (pT_A*pT_B/pT_pair²)
 	pt_particle_min  : float              only particles with pT > this enter EEC pairs (default 0)
+	eec_inclusive    : EECAccum or None   all jet constituents paired once (true inclusive EEC)
 	"""
 	lund_seq = lund_gen.result(jet)
 	jet_pt2  = jet.pt() ** 2
@@ -301,6 +303,12 @@ def process_jet(jet, lund_gen, eec_accums, lund_accum, kt_cuts, kappa_cuts,
 			if l.kt() < z_sym_kt_cut:
 				continue
 			_fill_splitting(l, eec_sym, jet_pt2, pt_particle_min)
+
+	# ── inclusive: all jet constituents paired once ─────────────────────────
+	if eec_inclusive is not None:
+		eec_inclusive.n_jets += 1
+		parts = [p for p in jet.constituents() if p.pt() > pt_particle_min]
+		eec_inclusive.fill(parts, [], jet_pt2)
 
 
 # ── event sources ─────────────────────────────────────────────────────────────
@@ -412,6 +420,8 @@ def main():
 	                    help='Number of ln(ΔR) bins for EEC histograms (default 30)')
 	parser.add_argument('--pt-particle-min',    default=0.0, type=float,
 	                    help='Min particle pT [GeV] for EEC pairs (default 0, all particles)')
+	parser.add_argument('--inclusive-eec',      action='store_true', default=False,
+	                    help='Compute true inclusive EEC: all jet constituents paired once')
 	args = parser.parse_args()
 
 	# jet finder + Lund generator
@@ -438,11 +448,13 @@ def main():
 	                if args.max_kt_eec else None
 	z_sd_vals     = [float(x) for x in args.z_sd.split(',')]
 	eec_sd_dict   = {z: EECAccum(nbins=args.eec_nbins) for z in z_sd_vals} if args.soft_drop_eec else None
-	eec_sym       = EECAccum(nbins=args.eec_nbins) if args.symmetric_eec else None
+	eec_sym       = EECAccum(nbins=args.eec_nbins) if args.symmetric_eec  else None
+	eec_inclusive = EECAccum(nbins=args.eec_nbins) if args.inclusive_eec  else None
 
 	if lund_accum_lw: print('[i] local-weight Lund plane enabled  (pT_A*pT_B/pT_pair²)')
 	if args.pt_particle_min > 0:
 		print(f'[i] EEC particle pT cut: pT > {args.pt_particle_min} GeV')
+	if eec_inclusive: print('[i] inclusive EEC enabled  (all jet constituents, each pair once)')
 	if eec_maxkt:   print('[i] max-kT EEC enabled (+ combined max_kt & kt_cut)')
 	if eec_sd_dict: print(f'[i] soft-drop EEC enabled  z_sd values: {z_sd_vals}')
 	if eec_sym:
@@ -465,7 +477,8 @@ def main():
 			            lund_accum_w=lund_accum_w, lund_accum_lw=lund_accum_lw,
 			            eec_sym=eec_sym, z_sym=args.z_sym,
 			            z_sym_kt_cut=args.z_sym_kt_cut,
-			            pt_particle_min=args.pt_particle_min)
+			            pt_particle_min=args.pt_particle_min,
+			            eec_inclusive=eec_inclusive)
 
 	# ── output ────────────────────────────────────────────────────────────────
 	stem = os.path.splitext(args.output)[0]
@@ -521,6 +534,16 @@ def main():
 		if args.z_sym_kt_cut > 0:
 			sel += f'_kt>{args.z_sym_kt_cut}'
 		df['selection']  = sel
+		df['jet_pt_min'] = args.jet_pt_min
+		df['jet_pt_max'] = args.jet_pt_max
+		frames.append(df)
+
+	if eec_inclusive is not None:
+		eec_inclusive.normalise()
+		df = eec_inclusive.to_df(label=bare_label)
+		df['kt_cut']     = float('nan')
+		df['kappa_cut']  = float('nan')
+		df['selection']  = 'inclusive'
 		df['jet_pt_min'] = args.jet_pt_min
 		df['jet_pt_max'] = args.jet_pt_max
 		frames.append(df)
