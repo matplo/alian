@@ -74,7 +74,7 @@ class EECAccum:
 	weighted by pT_i * pT_j / pT_jet^2.
 	"""
 
-	def __init__(self, nbins=60, lndr_min=-5.0, lndr_max=1.5):
+	def __init__(self, nbins=30, lndr_min=-5.0, lndr_max=1.5):
 		self.edges    = np.linspace(lndr_min, lndr_max, nbins + 1)
 		self.nbins    = nbins
 		self.h        = {t: np.zeros(nbins) for t in ('AA', 'BB', 'AB', 'all')}
@@ -215,12 +215,16 @@ def select_symmetric_splittings(lund_seq, z_min):
 
 # ── per-jet analysis ──────────────────────────────────────────────────────────
 
-def _fill_splitting(l, accum, jet_pt2):
-	"""Fill accum from a single LundDeclustering object."""
+def _fill_splitting(l, accum, jet_pt2, pt_min=0.0):
+	"""Fill accum from a single LundDeclustering object.
+	Only particles with pT > pt_min are included in the EEC pairs.
+	"""
 	try:
-		parts_a = list(l.harder().constituents())
-		parts_b = list(l.softer().constituents())
+		parts_a = [p for p in l.harder().constituents() if p.pt() > pt_min]
+		parts_b = [p for p in l.softer().constituents() if p.pt() > pt_min]
 	except Exception:
+		return
+	if not parts_a and not parts_b:
 		return
 	accum.fill(parts_a, parts_b, jet_pt2)
 	accum.sum_kt += l.kt()
@@ -230,27 +234,28 @@ def process_jet(jet, lund_gen, eec_accums, lund_accum, kt_cuts, kappa_cuts,
                 eec_maxkt=None, eec_maxkt_thr=None,
                 eec_sd_dict=None, lund_accum_w=None,
                 eec_sym=None, z_sym=0.3, z_sym_kt_cut=0.0,
-                lund_accum_lw=None):
+                lund_accum_lw=None, pt_particle_min=0.0):
 	"""
 	Run the Lund + E2C analysis for a single jet.
 
 	Parameters
 	----------
-	jet           : fj.PseudoJet
-	lund_gen      : fj.contrib.LundGenerator
-	eec_accums    : dict { (kt_cut, kappa_cut) -> EECAccum }  threshold-based
-	lund_accum    : LundPlaneAccum   density (weight=1 per splitting)
-	kt_cuts       : list of float
-	kappa_cuts    : list of float
-	eec_maxkt     : EECAccum or None   filled with the max-kT splitting
-	eec_maxkt_thr : dict { (kt_cut, kappa_cut) -> EECAccum } or None
-	                max-kT splitting that also passes each kt/kappa threshold
-	eec_sd_dict   : dict { z_sd -> EECAccum } or None  soft-drop per z_sd value
-	lund_accum_w  : LundPlaneAccum or None  energy-weighted Lund plane (pT_A*pT_B/pT_jet²)
-	eec_sym       : EECAccum or None   filled with splittings where z > z_sym
-	z_sym         : float              symmetry z threshold (default 0.3)
-	z_sym_kt_cut  : float              additional kT cut for symmetric splittings (default 0.0)
-	lund_accum_lw : LundPlaneAccum or None  local-weight Lund plane (pT_A*pT_B/pT_pair²)
+	jet              : fj.PseudoJet
+	lund_gen         : fj.contrib.LundGenerator
+	eec_accums       : dict { (kt_cut, kappa_cut) -> EECAccum }  threshold-based
+	lund_accum       : LundPlaneAccum   density (weight=1 per splitting)
+	kt_cuts          : list of float
+	kappa_cuts       : list of float
+	eec_maxkt        : EECAccum or None   filled with the max-kT splitting
+	eec_maxkt_thr    : dict { (kt_cut, kappa_cut) -> EECAccum } or None
+	                   max-kT splitting that also passes each kt/kappa threshold
+	eec_sd_dict      : dict { z_sd -> EECAccum } or None  soft-drop per z_sd value
+	lund_accum_w     : LundPlaneAccum or None  energy-weighted Lund plane (pT_A*pT_B/pT_jet²)
+	eec_sym          : EECAccum or None   filled with splittings where z > z_sym
+	z_sym            : float              symmetry z threshold (default 0.3)
+	z_sym_kt_cut     : float              additional kT cut for symmetric splittings (default 0.0)
+	lund_accum_lw    : LundPlaneAccum or None  local-weight Lund plane (pT_A*pT_B/pT_pair²)
+	pt_particle_min  : float              only particles with pT > this enter EEC pairs (default 0)
 	"""
 	lund_seq = lund_gen.result(jet)
 	jet_pt2  = jet.pt() ** 2
@@ -266,7 +271,7 @@ def process_jet(jet, lund_gen, eec_accums, lund_accum, kt_cuts, kappa_cuts,
 		for l in lund_seq:
 			if l.kt()    < kt_cut:    continue
 			if l.kappa() < kappa_cut: continue
-			_fill_splitting(l, accum, jet_pt2)
+			_fill_splitting(l, accum, jet_pt2, pt_particle_min)
 
 	# ── max-kT splitting ───────────────────────────────────────────────────
 	if eec_maxkt is not None or eec_maxkt_thr is not None:
@@ -274,12 +279,12 @@ def process_jet(jet, lund_gen, eec_accums, lund_accum, kt_cuts, kappa_cuts,
 		if eec_maxkt is not None:
 			eec_maxkt.n_jets += 1
 			if l is not None:
-				_fill_splitting(l, eec_maxkt, jet_pt2)
+				_fill_splitting(l, eec_maxkt, jet_pt2, pt_particle_min)
 		if eec_maxkt_thr is not None:
 			for (kt_cut, kappa_cut), accum in eec_maxkt_thr.items():
 				accum.n_jets += 1
 				if l is not None and l.kt() >= kt_cut and l.kappa() >= kappa_cut:
-					_fill_splitting(l, accum, jet_pt2)
+					_fill_splitting(l, accum, jet_pt2, pt_particle_min)
 
 	# ── soft-drop splittings (one accumulator per z_sd) ────────────────────
 	if eec_sd_dict is not None:
@@ -287,7 +292,7 @@ def process_jet(jet, lund_gen, eec_accums, lund_accum, kt_cuts, kappa_cuts,
 			accum.n_jets += 1
 			l = select_soft_drop(lund_seq, z_sd)
 			if l is not None:
-				_fill_splitting(l, accum, jet_pt2)
+				_fill_splitting(l, accum, jet_pt2, pt_particle_min)
 
 	# ── symmetric splittings (z > z_sym, optionally kT > z_sym_kt_cut) ────
 	if eec_sym is not None:
@@ -295,7 +300,7 @@ def process_jet(jet, lund_gen, eec_accums, lund_accum, kt_cuts, kappa_cuts,
 		for l in select_symmetric_splittings(lund_seq, z_sym):
 			if l.kt() < z_sym_kt_cut:
 				continue
-			_fill_splitting(l, eec_sym, jet_pt2)
+			_fill_splitting(l, eec_sym, jet_pt2, pt_particle_min)
 
 
 # ── event sources ─────────────────────────────────────────────────────────────
@@ -403,6 +408,10 @@ def main():
 	                    help='Symmetry z threshold (default 0.3, used with --symmetric-eec)')
 	parser.add_argument('--z-sym-kt-cut',  default=0.0,       type=float,
 	                    help='Additional kT cut [GeV] for symmetric splittings (default 0, disabled)')
+	parser.add_argument('--eec-nbins',          default=30,  type=int,
+	                    help='Number of ln(ΔR) bins for EEC histograms (default 30)')
+	parser.add_argument('--pt-particle-min',    default=0.0, type=float,
+	                    help='Min particle pT [GeV] for EEC pairs (default 0, all particles)')
 	args = parser.parse_args()
 
 	# jet finder + Lund generator
@@ -420,18 +429,20 @@ def main():
 	kappa_vals = [float(x) for x in args.kappa_cuts.split(',')]
 	kappa_cuts = [kappa_vals[i] if i < len(kappa_vals) else 0.0 for i in range(len(kt_cuts))]
 
-	eec_accums    = {(kt, kp): EECAccum() for kt, kp in zip(kt_cuts, kappa_cuts)}
+	eec_accums    = {(kt, kp): EECAccum(nbins=args.eec_nbins) for kt, kp in zip(kt_cuts, kappa_cuts)}
 	lund_accum    = LundPlaneAccum()
 	lund_accum_w  = LundPlaneAccum()
 	lund_accum_lw = LundPlaneAccum() if args.lund_local_weight else None
-	eec_maxkt     = EECAccum() if args.max_kt_eec    else None
-	eec_maxkt_thr = {(kt, kp): EECAccum() for kt, kp in zip(kt_cuts, kappa_cuts)} \
+	eec_maxkt     = EECAccum(nbins=args.eec_nbins) if args.max_kt_eec    else None
+	eec_maxkt_thr = {(kt, kp): EECAccum(nbins=args.eec_nbins) for kt, kp in zip(kt_cuts, kappa_cuts)} \
 	                if args.max_kt_eec else None
 	z_sd_vals     = [float(x) for x in args.z_sd.split(',')]
-	eec_sd_dict   = {z: EECAccum() for z in z_sd_vals} if args.soft_drop_eec else None
-	eec_sym       = EECAccum() if args.symmetric_eec else None
+	eec_sd_dict   = {z: EECAccum(nbins=args.eec_nbins) for z in z_sd_vals} if args.soft_drop_eec else None
+	eec_sym       = EECAccum(nbins=args.eec_nbins) if args.symmetric_eec else None
 
 	if lund_accum_lw: print('[i] local-weight Lund plane enabled  (pT_A*pT_B/pT_pair²)')
+	if args.pt_particle_min > 0:
+		print(f'[i] EEC particle pT cut: pT > {args.pt_particle_min} GeV')
 	if eec_maxkt:   print('[i] max-kT EEC enabled (+ combined max_kt & kt_cut)')
 	if eec_sd_dict: print(f'[i] soft-drop EEC enabled  z_sd values: {z_sd_vals}')
 	if eec_sym:
@@ -453,7 +464,8 @@ def main():
 			            eec_sd_dict=eec_sd_dict,
 			            lund_accum_w=lund_accum_w, lund_accum_lw=lund_accum_lw,
 			            eec_sym=eec_sym, z_sym=args.z_sym,
-			            z_sym_kt_cut=args.z_sym_kt_cut)
+			            z_sym_kt_cut=args.z_sym_kt_cut,
+			            pt_particle_min=args.pt_particle_min)
 
 	# ── output ────────────────────────────────────────────────────────────────
 	stem = os.path.splitext(args.output)[0]

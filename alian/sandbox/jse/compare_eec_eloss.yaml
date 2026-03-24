@@ -1,0 +1,64 @@
+# compare_eec_example.yaml
+# Usage: python compare_eec.py --config compare_eec_example.yaml [--show] [--no-save]
+# ---------------------------------------------------------------------------
+# Adjust paths/labels to match your gen_KITP_LundEEC.sh output directories.
+
+output_dir: figures/comparison_eloss
+formats: [pdf, png]
+
+# Label of the reference run (used for ratios).
+# Must match one of the labels below.
+reference: "pp 100"
+
+runs:
+  - path: py-hardQCD_pthat100_R06_pt100_110_N100000_ptpmin1p0_pp
+    label: "pp 100"
+    color: black
+
+  - path: py-hardQCD_pthat110_R06_pt110_121_N100000_ptpmin1p0_pp
+    label: "pp 110"
+    color: tab:blue
+
+  # add more runs as needed:
+  # - path: py-hardQCD_pthat90_R06_pt90_99_N50000_pp
+  #   label: "pp (QCD, high stats)"
+  #   color: tab:orange
+
+# EEC selections to plot.
+# Use 'threshold_ktX' shorthand for selection='threshold' with kt_cut=X.
+selections:
+  - threshold_kt0
+  - threshold_kt1
+  - threshold_kt2
+  - max_kt
+  - soft_drop_z>0.1
+  - soft_drop_z>0.2
+  - soft_drop_z>0.3
+  - symmetric_z>0.3
+
+# Which EEC histogram columns to include in each plot.
+quantities:
+  - eec_all
+  - eec_AA
+  - eec_BB
+  - eec_AB
+
+eec:
+  plot_modes:
+    - overlay       # all runs on one set of axes per selection
+    - ratio         # each run / reference
+    # - side_by_side  # grid: rows=runs, columns=quantities
+  rebin: 2                 # merge adjacent bin pairs before plotting (1 = no rebinning)
+  # ylim: [1.0e-2, 1.0]      # y-axis range for overlay and side_by_side
+  xlim: [1.0e-2, 1.0]      # x-axis range as ΔR values (converted to ln(ΔR) internally)
+  ratio_ylim: [0.0, 2.0]   # y-axis range for ratio plots (omit to use ylim)
+
+lund:
+  types:
+    - density         # _lundplane.npy         (weight = 1 per splitting)
+    - weighted        # _lundplane_weighted.npy (weight = pT_A*pT_B/pT_jet²)
+    - local_weighted  # _lundplane_localweighted.npy (weight = pT_A*pT_B/pT_pair²)
+                      # only present if run with --lund-local-weight
+  plot_modes:
+    - individual    # one panel per run
+    - ratio         # log(run / reference), RdBu_r colormap, one figure per pair

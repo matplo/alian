@@ -120,16 +120,23 @@ def _get_eec_group(eec_df, sel):
     return eec_df[eec_df['selection'] == sel]
 
 
-def _eec_uncert(vals, n_jets):
-    """Per-bin statistical uncertainty: σ ≈ sqrt(h / n_jets).
+def _prep_eec(grp, qty):
+    """Prepare one EEC quantity for plotting.
 
-    Approximation: each jet is an independent contributor; variance per bin
-    scales as the mean contribution divided by n_jets.  Valid for n_jets >> 1
-    and smooth distributions.  Requires no additional stored quantities.
+    Divides by bin width Δ(ln ΔR) to obtain the proper density dE2C/d(ln ΔR).
+    Stat uncertainty: σ = sqrt(raw / n_jets) / Δ(ln ΔR)  (Poisson-like per-jet).
+
+    Returns (x, density, sigma, n_jets).
     """
-    if n_jets <= 0:
-        return np.zeros_like(vals)
-    return np.sqrt(np.clip(vals, 0.0, None) / n_jets)
+    vals   = grp[qty].values.copy().astype(float)
+    x      = grp['ln_dR'].values.copy()
+    bw     = (grp['bin_hi'] - grp['bin_lo']).values   # Δ(ln ΔR)
+    n_jets = int(grp['n_jets'].iloc[0])
+
+    density = vals / bw
+    sigma   = np.sqrt(np.clip(vals, 0.0, None) / n_jets) / bw
+
+    return x, density, sigma, n_jets
 
 
 def _apply_eec_ylim(ax, cfg, is_ratio=False):
@@ -145,19 +152,6 @@ def _apply_eec_xlim(ax, cfg):
     xlim = cfg.get('eec', {}).get('xlim', None)
     if xlim is not None:
         ax.set_xlim(np.log(xlim[0]), np.log(xlim[1]))
-
-
-def _ratio_uncert(h_a, n_a, h_b, n_b, ratio):
-    """Stat uncertainty on ratio A/B via error propagation.
-
-    σ_R/R = sqrt(σ_A²/A² + σ_B²/B²)
-    With σ_X = sqrt(X/n_X):  σ_R = R * sqrt(1/(A*n_A) + 1/(B*n_B))
-    """
-    with np.errstate(divide='ignore', invalid='ignore'):
-        rel_var = (np.where(h_a > 0, 1.0 / (h_a * n_a), 0.0) +
-                   np.where(h_b > 0, 1.0 / (h_b * n_b), 0.0))
-        sigma = np.where(np.isfinite(ratio), ratio * np.sqrt(rel_var), np.nan)
-    return sigma
 
 
 # ── EEC: overlay ──────────────────────────────────────────────────────────────
@@ -178,20 +172,17 @@ def plot_eec_overlay(runs, selection, quantities, cfg, show, save):
             grp = _get_eec_group(run['eec_df'], selection)
             if grp.empty:
                 continue
-            vals   = grp[qty].values
-            x      = grp['ln_dR'].values
-            color  = run.get('color') or colors[ci % 10]
-            ax.step(x, vals, where='mid', label=run['label'],
+            x, density, sigma, _ = _prep_eec(grp, qty)
+            color = run.get('color') or colors[ci % 10]
+            ax.step(x, density, where='mid', label=run['label'],
                     color=color, ls=_eec_ls.get(qty, '-'))
             if show_unc:
-                n_jets = grp['n_jets'].iloc[0]
-                sigma  = _eec_uncert(vals, n_jets)
-                ax.fill_between(x, vals - sigma, vals + sigma,
+                ax.fill_between(x, density - sigma, density + sigma,
                                 alpha=0.15, color=color, step='mid')
         ax.set_title(_eec_names.get(qty, qty))
         ax.set_xlabel(r'$\ln(\Delta R)$')
         if qi == 0:
-            ax.set_ylabel('E2C')
+            ax.set_ylabel(r'$dE2C/d\ln(\Delta R)$')
         ax.legend(fontsize=9)
         add_eec_secaxis(ax)
         _apply_eec_ylim(ax, cfg)
@@ -205,7 +196,7 @@ def plot_eec_overlay(runs, selection, quantities, cfg, show, save):
 
 def plot_eec_ratio(runs, ref_run, selection, quantities, cfg, show, save):
     """Each non-reference run divided by the reference; one panel per quantity.
-    Uncertainty bands from error propagation: σ_R = R·sqrt(1/(A·n_A) + 1/(B·n_B))."""
+    Bin-width cancels in the ratio; uncertainty via relative error propagation."""
     non_ref = [r for r in runs if r is not ref_run]
     if not non_ref:
         return
@@ -223,25 +214,26 @@ def plot_eec_ratio(runs, ref_run, selection, quantities, cfg, show, save):
         if ref_grp is None or ref_grp.empty:
             ax.set_title(f'{_eec_names.get(qty, qty)} — no reference data')
             continue
-        h_b  = ref_grp[qty].values
-        n_b  = ref_grp['n_jets'].iloc[0]
-        x    = ref_grp['ln_dR'].values
+        x_b, d_b, s_b, _ = _prep_eec(ref_grp, qty)
         for ci, run in enumerate(non_ref):
             if run['eec_df'] is None:
                 continue
             grp = _get_eec_group(run['eec_df'], selection)
             if grp.empty:
                 continue
-            h_a   = grp[qty].values
-            n_a   = grp['n_jets'].iloc[0]
+            _, d_a, s_a, _ = _prep_eec(grp, qty)
             color = run.get('color') or colors[ci % 10]
             with np.errstate(divide='ignore', invalid='ignore'):
-                ratio = np.where(h_b > 0, h_a / h_b, np.nan)
-            ax.step(x, ratio, where='mid',
+                ratio = np.where(d_b > 0, d_a / d_b, np.nan)
+            ax.step(x_b, ratio, where='mid',
                     label=f'{run["label"]} / {ref_run["label"]}', color=color)
             if show_unc:
-                sigma = _ratio_uncert(h_a, n_a, h_b, n_b, ratio)
-                ax.fill_between(x, ratio - sigma, ratio + sigma,
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    sigma_r = np.where(
+                        (d_a > 0) & (d_b > 0),
+                        ratio * np.sqrt((s_a / d_a) ** 2 + (s_b / d_b) ** 2),
+                        np.nan)
+                ax.fill_between(x_b, ratio - sigma_r, ratio + sigma_r,
                                 alpha=0.2, color=color, step='mid')
         ax.axhline(1.0, ls=':', color='grey', lw=1)
         ax.set_title(_eec_names.get(qty, qty))
@@ -272,12 +264,10 @@ def plot_eec_side_by_side(runs, selection, quantities, cfg, show, save):
             if run['eec_df'] is not None:
                 grp = _get_eec_group(run['eec_df'], selection)
                 if not grp.empty:
-                    vals = grp[qty].values
-                    x    = grp['ln_dR'].values
-                    ax.step(x, vals, where='mid', color=color)
+                    x, density, sigma, _ = _prep_eec(grp, qty)
+                    ax.step(x, density, where='mid', color=color)
                     if show_unc:
-                        sigma = _eec_uncert(vals, grp['n_jets'].iloc[0])
-                        ax.fill_between(x, vals - sigma, vals + sigma,
+                        ax.fill_between(x, density - sigma, density + sigma,
                                         alpha=0.2, color=color, step='mid')
             if ri == 0:
                 ax.set_title(_eec_names.get(qty, qty))
