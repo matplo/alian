@@ -24,6 +24,9 @@ def psjv_from_tracks_run3(event, index_offset=0, m=0.13957):
     rv = alian.numpy_ptetaphi_to_pseudojets(event.data['track_data_pt'], event.data['track_data_eta'], event.data['track_data_phi'], m, index_offset)
     return rv
 
+def psjv_from_tracks_run3_selected(pt, eta, phi, m, index_offset):
+    return alian.numpy_ptetaphi_to_pseudojets(pt, eta, phi, m, index_offset)
+
 def psjv_from_tracks_run2(event, index_offset=0, m=0.13957):
     rv = std.vector[fj.PseudoJet]()
     for i in range(len(event.data['ParticlePt'])):
@@ -39,11 +42,10 @@ def psjv_from_tracks_run2(event, index_offset=0, m=0.13957):
     return rv
 
 def data_tracks_to_pseudojets(event, index_offset=0, m=0.13957, lhc_run=3):
-		if lhc_run == 3:
-				return psjv_from_tracks_run3(event, index_offset, m)
-		elif lhc_run == 2:
-				return psjv_from_tracks_run2(event, index_offset, m)
-		else:
-				raise ValueError(f'Invalid run number: {lhc_run}')
-		return None
-  
+    if lhc_run == 3:
+        return psjv_from_tracks_run3(event, index_offset, m)
+    elif lhc_run == 2:
+        return psjv_from_tracks_run2(event, index_offset, m)
+    else:
+        raise ValueError(f'Invalid run number: {lhc_run}')
+    return None

@@ -1,24 +1,30 @@
 eventTree:
   branches:
   - run_number
-  - event_selection
-  - triggersel
-  - centrality
   - multiplicity
-  - track_data_eta
-  - track_data_phi
-  - track_data_pt
-  - track_data_label
-  - track_data_tracksel
-#  - cluster_data_energy
-#  - cluster_data_eta
-#  - cluster_data_phi
-#  - cluster_data_m02
-#  - cluster_data_m20
-#  - cluster_data_ncells
-#  - cluster_data_time
-#  - cluster_data_isexotic
-#  - cluster_data_distancebadchannel
-#  - cluster_data_nlm
-#  - cluster_data_clusterdef
-#  - cluster_data_matchedTrackIndex
+  - centrality
+  - occupancy
+  - event_sel
+  - trig_sel
+  - rct
+  - track_pt
+  - track_eta
+  - track_phi
+  - track_sel
+  # - cluster_energy
+  # - cluster_eta
+  # - cluster_phi
+  # - cluster_m02
+  # - cluster_m20
+  # - cluster_ncells
+  # - cluster_time
+  # - cluster_exoticity
+  # - cluster_dbc
+  # - cluster_nlm
+  # - cluster_defn
+  # - cluster_matched_track_n
+  # - cluster_matched_track_delta_eta
+  # - cluster_matched_track_delta_phi
+  # - cluster_matched_track_p
+  # - cluster_matched_track_pt
+  # - cluster_matched_track_sel

@@ -6,7 +6,7 @@ import heppyy
 fj = heppyy.load_cppyy('fastjet')
 std = heppyy.load_cppyy('std')
 from alian.utils import pprints
-from alian.analysis.base import BaseAnalysis
+from .analysis import BaseAnalysis
 
 class CEventSubtractor(BaseAnalysis):
 	_defaults = {
