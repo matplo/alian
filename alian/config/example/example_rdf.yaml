@@ -1,0 +1,25 @@
+# to be used with alian/analysis/example/example_rdf.py
+selections:
+  event:
+    event_sel: sel8
+    trig_sel: GammaHighPtEMCAL, GammaHighPtDCAL
+    rct: CBT_calo
+  track:
+    pt_min: 0.150
+    track_sel: globalTrack
+  cluster:
+    energy_min: 0.7
+    m02_min: none
+    m02_max: none
+    ncells_min: 2
+    time_min: -30
+    time_max: 35
+    exoticity: True
+    nlm: 2
+    defn: 0
+    edge: True
+    delta_phi: 0.05
+    delta_eta: 0.05
+    ep_max: 1.75
+  isolation:
+    iso_pt_max: 1.5

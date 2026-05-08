@@ -34,7 +34,7 @@ class Run3FileInput(yasp.GenericObject):
     def add_generic_ebye_info(self):
         self.event.multiplicity = self.event.data['multiplicity']
         self.event.centrality = self.event.data['centrality']
-        self.event.track_count = len(self.event.data['track_data_pt'])
+        self.event.track_count = len(self.event.data['track_pt'])
         self.event.counter = self.event_count
 
     # Efficiently iterate over the tree as a generator
@@ -175,7 +175,15 @@ class Run2FileInput(yasp.GenericObject):
                     break
 
 
-def get_default_tree_structure(lhc_run=3):
+def get_default_tree_structure(file_list, lhc_run=3):
+    if isinstance(file_list, str):
+        if file_list.endswith(".txt"):
+            with open(file_list, "r") as file:
+                filename = file.read().splitlines()
+        else:
+            filename = file_list
+    if os.path.isfile(_guess_path := os.path.join(os.path.dirname(os.path.abspath(filename)), "../tstruct.yaml")):
+        return _guess_path
     _alian_path_guess = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../')
     _default_tree_structure = os.path.join(_alian_path_guess, f'config/run{lhc_run}_tstruct.yaml')
     _alian_path = yasp.features('prefix', 'alian')
@@ -195,7 +203,7 @@ class DataInput(yasp.GenericObject):
         self.tree_name = tree_name
         self.branches = branches
         if self.yaml_file is None:
-            self.yaml_file = get_default_tree_structure(lhc_run=self.lhc_run)
+            self.yaml_file = get_default_tree_structure(file_list = file_list, lhc_run=self.lhc_run)
         _data_input = Run2FileInput if lhc_run == 2 else Run3FileInput
         self.data_input = _data_input(file_list, yaml_file=self.yaml_file, tree_name=self.tree_name, branches=self.branches, **kwargs)
 

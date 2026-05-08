@@ -1,0 +1,65 @@
+# to be used with alian/analysis/example/example_analysis.py
+constants: # a YAML hack to define constants
+  pi34: &pi34 2.35619449019
+  halfpi: &pihalf 1.57079632679
+  pi: &pi 3.14159265359
+
+# Event cuts
+selections:
+  event:
+    event_sel: sel8
+    trig_sel: GammaHighPtEMCAL, GammaHighPtDCAL
+    rct: CBT_calo
+  track:
+    pt_min: 0.150
+    track_sel: globalTrack
+  # remove the cluster section below if clusters are not needed in analysis
+  # if clusters are needed but no selections should be applied, keep only `cluster:`
+  cluster:
+    energy_min: 0.7
+    m02_min: none
+    m02_max: none
+    ncells_min: 2
+    time_min: -30
+    time_max: 35
+    exoticity: True
+    nlm: 2
+    defn: 0
+    edge: True
+    delta_phi: 0.05
+    delta_eta: 0.05
+    ep_max: 1.75
+  isolation:
+    iso_pt_max: 1.5
+
+# remove the jet_finder section below if jets are not needed in analysis
+jet_finder:
+  R: 0.4
+  alg: antikt
+  pT_min: 10
+
+analysis:
+  photon_jet_angle_min: *pi34
+  pt_min_eec: 1.0
+
+output:
+  bins:
+    track_pT: ['log', 0.1, 20, 300]
+    iso_pT: ['lin', 0, 10, 100]
+    jet_pT: ['lin', 0, 200, 200]
+    jet_pT_coarse: ['custom', [5, 20, 40, 60, 80, 100, 150, 200]]
+    RL: ['log', 1.0e-3, 1, 30]
+    photon_E: ['lin', 0, 80, 200]
+    dphi: ['lin', *pihalf, *pi, 30]
+    xjy: ['lin', 0.5, 1.5, 30]
+  histograms:
+    # define histograms with bins described in `bins`
+    track_pT: [1, "track_pT", "Track #it{p}_{T} spectrum;#it{p}_{T} (GeV);dN/d#it{p}_{T}", track_pT]
+    tot_iso_pT: [1, "iso_pT", "Isolation;isolation #it{p}_{T} (GeV);Counts", iso_pT]
+    jet_pT: [1, "jet_pT", "Jet #it{p}_{T} spectrum;jet #it{p}_{T} (GeV);Counts", jet_pT]
+    jet_pT_coarse: [1, "jet_pT_coarse", "Jet #it{p}_{T} spectrum (coarse binning);jet #it{p}_{T} (GeV);Counts", jet_pT_coarse]
+    photon_E: [1, "photon_E", "Photon energy spectrum;photon energy (GeV);Counts", photon_E]
+    jet_photon_dphi: [1, "dphi", "Photon-jet #Delta#phi;#Delta#phi (radians);Counts", dphi]
+    y_jet_pT: [1, "y_jet_pT", "Photon-tagged jet #it{p}_{T} spectrum;jet #it{p}_{T} (GeV);Counts", jet_pT]
+    eec: [2, "eec", "Photon-tagged EEC;jet #it{p}_{T} (GeV);#it{R}_{L}", jet_pT, RL]
+    xjy: [2, "xjy", "Photon-jet imbalance;#it{x}_{J#gamma};photon energy (Gev)", xjy, photon_E]
