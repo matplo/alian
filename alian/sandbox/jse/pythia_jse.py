@@ -26,7 +26,7 @@ import array
 from yasp import GenericObject
 from alian.sandbox.root_output import SingleRootFile
 
-# we measured for k=1 and a>0
+# we measured for k=1 and a=1,2,3
 def angularity(jet, a, k, jetR):
 	ang = 0.0
 	for p in jet.constituents():

@@ -51,6 +51,9 @@ eec:
   xlim: [1.0e-2, 1.0]      # x-axis range as ΔR values (converted to ln(ΔR) internally)
   ylim: [1.0e-2, 1.0]      # y-axis range for overlay and side_by_side
   ratio_ylim: [0.0, 2.0]   # y-axis range for ratio plots (omit to use ylim)
+  # Energy-loss rescaling (Option C): list of Δ values [GeV] to subtract from
+  # sqrt(avg_jet_pt2) when rescaling raw EEC columns: h_eloss = eec_*_raw / (sqrt(<pT²>) - Δ)²
+  # eloss: [0, 5, 10, 20]  # 0 = standard (no rescaling), one figure set per Δ value
 
 # Statistical uncertainty bands (σ ≈ sqrt(h/n_jets) per bin).
 # Shown as fill_between with alpha=0.15 on overlay/side_by_side,

@@ -1,4 +1,4 @@
-pthatmin=100
+pthatmin=110
 ptjetmin=$pthatmin
 ptjetmax=$(( ptjetmin + ptjetmin/10 ))
 nevents=100000
@@ -22,7 +22,7 @@ data_dir="/Users/ploskon/data/jewel/fromLuisa"
 # input="${data_dir}/jewel_100GeV_vacuum_99.root"
 # input="jewel_*.root"
 # input="${data_dir}/jewel_100GeV_vacuum_9*.root"
-input="${data_dir}/jewel_100GeV_medium_9*.root"
+# input="${data_dir}/jewel_100GeV_medium_9*.root"
 max_events=""  # e.g. 1000; empty = all
 max_events=${nevents}  # override max_events if nev is set (for Pythia mode)
 
@@ -54,11 +54,12 @@ python lund_eec.py $mode_args \
 --label $label \
 --jetR $jetR \
 --output $output \
---kt-cuts $kt_cuts \
---kappa-cuts $kappa_cuts \
 --pt-particle-min $pt_particle_min \
 --inclusive-eec \
 --max-kt-eec \
 --soft-drop-eec --z-sd $z_sd \
---symmetric-eec --z-sym $z_sym --z-sym-kt-cut $z_sym_kt_cut \
 --lund-local-weight
+
+# --kt-cuts $kt_cuts \
+# --kappa-cuts $kappa_cuts \
+# --symmetric-eec --z-sym $z_sym --z-sym-kt-cut $z_sym_kt_cut \

@@ -11,11 +11,11 @@ formats: [pdf, png]
 reference: "pp 100"
 
 runs:
-  - path: py-hardQCD_pthat100_R06_pt100_110_N100000_ptpmin1p0_pp
+  - path: py-hardQCD_pthat100_R06_pt100_110_N1000_ptpmin1p0_pp
     label: "pp 100"
     color: black
 
-  - path: py-hardQCD_pthat110_R06_pt110_121_N100000_ptpmin1p0_pp
+  - path: py-hardQCD_pthat110_R06_pt110_121_N1000_ptpmin1p0_pp
     label: "pp 110"
     color: tab:blue
 
@@ -27,14 +27,15 @@ runs:
 # EEC selections to plot.
 # Use 'threshold_ktX' shorthand for selection='threshold' with kt_cut=X.
 selections:
-  - threshold_kt0
-  - threshold_kt1
-  - threshold_kt2
+  - inclusive
+  #- threshold_kt0
+  #- threshold_kt1
+  #- threshold_kt2
   - max_kt
   - soft_drop_z>0.1
   - soft_drop_z>0.2
-  - soft_drop_z>0.3
-  - symmetric_z>0.3
+  #- soft_drop_z>0.3
+  #- symmetric_z>0.3
 
 # Which EEC histogram columns to include in each plot.
 quantities:
@@ -48,7 +49,7 @@ eec:
     - overlay       # all runs on one set of axes per selection
     - ratio         # each run / reference
     # - side_by_side  # grid: rows=runs, columns=quantities
-  rebin: 2                 # merge adjacent bin pairs before plotting (1 = no rebinning)
+  # rebin: 2                 # merge adjacent bin pairs before plotting (1 = no rebinning)
   # ylim: [1.0e-2, 1.0]      # y-axis range for overlay and side_by_side
   xlim: [1.0e-2, 1.0]      # x-axis range as ΔR values (converted to ln(ΔR) internally)
   ratio_ylim: [0.0, 2.0]   # y-axis range for ratio plots (omit to use ylim)

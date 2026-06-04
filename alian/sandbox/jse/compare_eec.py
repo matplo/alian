@@ -120,22 +120,37 @@ def _get_eec_group(eec_df, sel):
     return eec_df[eec_df['selection'] == sel]
 
 
-def _prep_eec(grp, qty):
+def _prep_eec(grp, qty, eloss_delta=0.0):
     """Prepare one EEC quantity for plotting.
 
     Divides by bin width Δ(ln ΔR) to obtain the proper density dE2C/d(ln ΔR).
     Stat uncertainty: σ = sqrt(raw / n_jets) / Δ(ln ΔR)  (Poisson-like per-jet).
 
+    If eloss_delta > 0, uses the *_raw column (Σ pT_i pT_j / n_jets per bin)
+    and rescales by 1/(sqrt(avg_jet_pt2) - eloss_delta)^2 to emulate energy loss.
+
     Returns (x, density, sigma, n_jets).
     """
-    vals   = grp[qty].values.copy().astype(float)
     x      = grp['ln_dR'].values.copy()
     bw     = (grp['bin_hi'] - grp['bin_lo']).values   # Δ(ln ΔR)
     n_jets = int(grp['n_jets'].iloc[0])
 
+    if eloss_delta > 0.0:
+        raw_col = qty + '_raw'
+        if raw_col not in grp.columns:
+            print(f'[w] column {raw_col} not found — falling back to {qty}')
+            eloss_delta = 0.0
+        else:
+            avg_pt2 = float(grp['avg_jet_pt2'].iloc[0])
+            pt_eff  = max(np.sqrt(avg_pt2) - eloss_delta, 1.0)
+            vals    = grp[raw_col].values.copy().astype(float) / pt_eff ** 2
+            density = vals / bw
+            sigma   = np.sqrt(np.clip(vals, 0.0, None) / n_jets) / bw
+            return x, density, sigma, n_jets
+
+    vals    = grp[qty].values.copy().astype(float)
     density = vals / bw
     sigma   = np.sqrt(np.clip(vals, 0.0, None) / n_jets) / bw
-
     return x, density, sigma, n_jets
 
 
@@ -156,7 +171,7 @@ def _apply_eec_xlim(ax, cfg):
 
 # ── EEC: overlay ──────────────────────────────────────────────────────────────
 
-def plot_eec_overlay(runs, selection, quantities, cfg, show, save):
+def plot_eec_overlay(runs, selection, quantities, cfg, show, save, eloss_delta=0.0):
     """All runs overlaid; one panel per quantity, with optional uncertainty bands."""
     show_unc = cfg.get('uncertainties', True)
     fig, axes = plt.subplots(1, len(quantities),
@@ -172,7 +187,7 @@ def plot_eec_overlay(runs, selection, quantities, cfg, show, save):
             grp = _get_eec_group(run['eec_df'], selection)
             if grp.empty:
                 continue
-            x, density, sigma, _ = _prep_eec(grp, qty)
+            x, density, sigma, _ = _prep_eec(grp, qty, eloss_delta)
             color = run.get('color') or colors[ci % 10]
             ax.step(x, density, where='mid', label=run['label'],
                     color=color, ls=_eec_ls.get(qty, '-'))
@@ -187,14 +202,16 @@ def plot_eec_overlay(runs, selection, quantities, cfg, show, save):
         add_eec_secaxis(ax)
         _apply_eec_ylim(ax, cfg)
         _apply_eec_xlim(ax, cfg)
-    plt.suptitle(f'E2C overlay — {selection}')
+    eloss_tag = f'  [eloss Δ={eloss_delta} GeV]' if eloss_delta > 0 else ''
+    plt.suptitle(f'E2C overlay — {selection}{eloss_tag}')
     plt.tight_layout()
-    _finish(fig, f'eec_overlay_{selection}_{"_".join(quantities)}', cfg, show, save)
+    etag = f'_eloss{eloss_delta}' if eloss_delta > 0 else ''
+    _finish(fig, f'eec_overlay_{selection}_{"_".join(quantities)}{etag}', cfg, show, save)
 
 
 # ── EEC: ratio ────────────────────────────────────────────────────────────────
 
-def plot_eec_ratio(runs, ref_run, selection, quantities, cfg, show, save):
+def plot_eec_ratio(runs, ref_run, selection, quantities, cfg, show, save, eloss_delta=0.0):
     """Each non-reference run divided by the reference; one panel per quantity.
     Bin-width cancels in the ratio; uncertainty via relative error propagation."""
     non_ref = [r for r in runs if r is not ref_run]
@@ -214,14 +231,14 @@ def plot_eec_ratio(runs, ref_run, selection, quantities, cfg, show, save):
         if ref_grp is None or ref_grp.empty:
             ax.set_title(f'{_eec_names.get(qty, qty)} — no reference data')
             continue
-        x_b, d_b, s_b, _ = _prep_eec(ref_grp, qty)
+        x_b, d_b, s_b, _ = _prep_eec(ref_grp, qty, eloss_delta)
         for ci, run in enumerate(non_ref):
             if run['eec_df'] is None:
                 continue
             grp = _get_eec_group(run['eec_df'], selection)
             if grp.empty:
                 continue
-            _, d_a, s_a, _ = _prep_eec(grp, qty)
+            _, d_a, s_a, _ = _prep_eec(grp, qty, eloss_delta)
             color = run.get('color') or colors[ci % 10]
             with np.errstate(divide='ignore', invalid='ignore'):
                 ratio = np.where(d_b > 0, d_a / d_b, np.nan)
@@ -244,14 +261,16 @@ def plot_eec_ratio(runs, ref_run, selection, quantities, cfg, show, save):
         add_eec_secaxis(ax)
         _apply_eec_ylim(ax, cfg, is_ratio=True)
         _apply_eec_xlim(ax, cfg)
-    plt.suptitle(f'E2C ratio — {selection}  (ref: {ref_run["label"]})')
+    eloss_tag = f'  [eloss Δ={eloss_delta} GeV]' if eloss_delta > 0 else ''
+    plt.suptitle(f'E2C ratio — {selection}  (ref: {ref_run["label"]}){eloss_tag}')
     plt.tight_layout()
-    _finish(fig, f'eec_ratio_{selection}_{"_".join(quantities)}', cfg, show, save)
+    etag = f'_eloss{eloss_delta}' if eloss_delta > 0 else ''
+    _finish(fig, f'eec_ratio_{selection}_{"_".join(quantities)}{etag}', cfg, show, save)
 
 
 # ── EEC: side by side ─────────────────────────────────────────────────────────
 
-def plot_eec_side_by_side(runs, selection, quantities, cfg, show, save):
+def plot_eec_side_by_side(runs, selection, quantities, cfg, show, save, eloss_delta=0.0):
     """Grid: rows = runs, columns = quantities, with uncertainty bands."""
     show_unc = cfg.get('uncertainties', True)
     nr, nq = len(runs), len(quantities)
@@ -264,7 +283,7 @@ def plot_eec_side_by_side(runs, selection, quantities, cfg, show, save):
             if run['eec_df'] is not None:
                 grp = _get_eec_group(run['eec_df'], selection)
                 if not grp.empty:
-                    x, density, sigma, _ = _prep_eec(grp, qty)
+                    x, density, sigma, _ = _prep_eec(grp, qty, eloss_delta)
                     ax.step(x, density, where='mid', color=color)
                     if show_unc:
                         ax.fill_between(x, density - sigma, density + sigma,
@@ -278,9 +297,11 @@ def plot_eec_side_by_side(runs, selection, quantities, cfg, show, save):
             add_eec_secaxis(ax)
             _apply_eec_ylim(ax, cfg)
             _apply_eec_xlim(ax, cfg)
-    plt.suptitle(f'E2C side-by-side — {selection}')
+    eloss_tag = f'  [eloss Δ={eloss_delta} GeV]' if eloss_delta > 0 else ''
+    plt.suptitle(f'E2C side-by-side — {selection}{eloss_tag}')
     plt.tight_layout()
-    _finish(fig, f'eec_sbs_{selection}_{"_".join(quantities)}', cfg, show, save)
+    etag = f'_eloss{eloss_delta}' if eloss_delta > 0 else ''
+    _finish(fig, f'eec_sbs_{selection}_{"_".join(quantities)}{etag}', cfg, show, save)
 
 
 # ── Lund: individual ──────────────────────────────────────────────────────────
@@ -445,17 +466,22 @@ def main():
     print(f'[i] reference run: {ref_run["label"]}')
 
     # ── EEC ────────────────────────────────────────────────────────────────────
-    selections = cfg.get('selections', [])
-    quantities = cfg.get('quantities', ['eec_all'])
-    eec_modes  = cfg.get('eec', {}).get('plot_modes', ['overlay'])
+    selections   = cfg.get('selections', [])
+    quantities   = cfg.get('quantities', ['eec_all'])
+    eec_modes    = cfg.get('eec', {}).get('plot_modes', ['overlay'])
+    eloss_values = cfg.get('eec', {}).get('eloss', [0.0])
 
-    for sel in selections:
-        if 'overlay' in eec_modes:
-            plot_eec_overlay(runs, sel, quantities, cfg, args.show, save)
-        if 'ratio' in eec_modes:
-            plot_eec_ratio(runs, ref_run, sel, quantities, cfg, args.show, save)
-        if 'side_by_side' in eec_modes:
-            plot_eec_side_by_side(runs, sel, quantities, cfg, args.show, save)
+    for eloss_delta in eloss_values:
+        for sel in selections:
+            if 'overlay' in eec_modes:
+                plot_eec_overlay(runs, sel, quantities, cfg, args.show, save,
+                                 eloss_delta=eloss_delta)
+            if 'ratio' in eec_modes:
+                plot_eec_ratio(runs, ref_run, sel, quantities, cfg, args.show, save,
+                               eloss_delta=eloss_delta)
+            if 'side_by_side' in eec_modes:
+                plot_eec_side_by_side(runs, sel, quantities, cfg, args.show, save,
+                                      eloss_delta=eloss_delta)
 
     # ── Lund planes ────────────────────────────────────────────────────────────
     lund_cfg   = cfg.get('lund', {})

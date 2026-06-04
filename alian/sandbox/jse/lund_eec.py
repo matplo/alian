@@ -78,9 +78,11 @@ class EECAccum:
 		self.edges    = np.linspace(lndr_min, lndr_max, nbins + 1)
 		self.nbins    = nbins
 		self.h        = {t: np.zeros(nbins) for t in ('AA', 'BB', 'AB', 'all')}
+		self.h_raw    = {t: np.zeros(nbins) for t in ('AA', 'BB', 'AB', 'all')}
 		self.n_jets   = 0
 		self.n_splits = 0
 		self.sum_kt   = 0.0
+		self.sum_jet_pt2 = 0.0
 
 	def fill(self, parts_a, parts_b, jet_pt2):
 		"""
@@ -98,9 +100,12 @@ class EECAccum:
 				return
 			idx = np.searchsorted(self.edges, math.log(dR), side='right') - 1
 			if 0 <= idx < self.nbins:
-				w = p1.pt() * p2.pt() / jet_pt2
-				self.h[key][idx]   += w
-				self.h['all'][idx] += w
+				w_raw = p1.pt() * p2.pt()
+				w = w_raw / jet_pt2
+				self.h[key][idx]     += w
+				self.h['all'][idx]   += w
+				self.h_raw[key][idx]   += w_raw
+				self.h_raw['all'][idx] += w_raw
 
 		# AA: pairs within harder subjet
 		for i in range(len(parts_a)):
@@ -122,22 +127,29 @@ class EECAccum:
 	def normalise(self):
 		if self.n_jets > 0:
 			for k in self.h:
-				self.h[k] = self.h[k] / self.n_jets
+				self.h[k]     = self.h[k]     / self.n_jets
+				self.h_raw[k] = self.h_raw[k] / self.n_jets
 
 	def to_df(self, label=None, kt_cut=None):
 		centers = 0.5 * (self.edges[:-1] + self.edges[1:])
 		avg_kt  = self.sum_kt / self.n_splits if self.n_splits > 0 else float('nan')
+		avg_jet_pt2 = self.sum_jet_pt2 / self.n_jets if self.n_jets > 0 else float('nan')
 		d = {
-			'ln_dR':    centers,
-			'bin_lo':   self.edges[:-1],
-			'bin_hi':   self.edges[1:],
-			'eec_AA':   self.h['AA'],
-			'eec_BB':   self.h['BB'],
-			'eec_AB':   self.h['AB'],
-			'eec_all':  self.h['all'],
-			'n_jets':   self.n_jets,
-			'n_splits': self.n_splits,
-			'avg_kt':   avg_kt,
+			'ln_dR':       centers,
+			'bin_lo':      self.edges[:-1],
+			'bin_hi':      self.edges[1:],
+			'eec_AA':      self.h['AA'],
+			'eec_BB':      self.h['BB'],
+			'eec_AB':      self.h['AB'],
+			'eec_all':     self.h['all'],
+			'eec_AA_raw':  self.h_raw['AA'],
+			'eec_BB_raw':  self.h_raw['BB'],
+			'eec_AB_raw':  self.h_raw['AB'],
+			'eec_all_raw': self.h_raw['all'],
+			'n_jets':      self.n_jets,
+			'n_splits':    self.n_splits,
+			'avg_kt':      avg_kt,
+			'avg_jet_pt2': avg_jet_pt2,
 		}
 		if label   is not None: d['label']  = label
 		if kt_cut  is not None: d['kt_cut'] = kt_cut
@@ -270,6 +282,7 @@ def process_jet(jet, lund_gen, eec_accums, lund_accum, kt_cuts, kappa_cuts,
 	# ── threshold-based (all splittings passing cuts) ──────────────────────
 	for (kt_cut, kappa_cut), accum in eec_accums.items():
 		accum.n_jets += 1
+		accum.sum_jet_pt2 += jet_pt2
 		for l in lund_seq:
 			if l.kt()    < kt_cut:    continue
 			if l.kappa() < kappa_cut: continue
@@ -280,11 +293,13 @@ def process_jet(jet, lund_gen, eec_accums, lund_accum, kt_cuts, kappa_cuts,
 		l = select_max_kt(lund_seq)
 		if eec_maxkt is not None:
 			eec_maxkt.n_jets += 1
+			eec_maxkt.sum_jet_pt2 += jet_pt2
 			if l is not None:
 				_fill_splitting(l, eec_maxkt, jet_pt2, pt_particle_min)
 		if eec_maxkt_thr is not None:
 			for (kt_cut, kappa_cut), accum in eec_maxkt_thr.items():
 				accum.n_jets += 1
+				accum.sum_jet_pt2 += jet_pt2
 				if l is not None and l.kt() >= kt_cut and l.kappa() >= kappa_cut:
 					_fill_splitting(l, accum, jet_pt2, pt_particle_min)
 
@@ -292,6 +307,7 @@ def process_jet(jet, lund_gen, eec_accums, lund_accum, kt_cuts, kappa_cuts,
 	if eec_sd_dict is not None:
 		for z_sd, accum in eec_sd_dict.items():
 			accum.n_jets += 1
+			accum.sum_jet_pt2 += jet_pt2
 			l = select_soft_drop(lund_seq, z_sd)
 			if l is not None:
 				_fill_splitting(l, accum, jet_pt2, pt_particle_min)
@@ -299,6 +315,7 @@ def process_jet(jet, lund_gen, eec_accums, lund_accum, kt_cuts, kappa_cuts,
 	# ── symmetric splittings (z > z_sym, optionally kT > z_sym_kt_cut) ────
 	if eec_sym is not None:
 		eec_sym.n_jets += 1
+		eec_sym.sum_jet_pt2 += jet_pt2
 		for l in select_symmetric_splittings(lund_seq, z_sym):
 			if l.kt() < z_sym_kt_cut:
 				continue
@@ -307,6 +324,7 @@ def process_jet(jet, lund_gen, eec_accums, lund_accum, kt_cuts, kappa_cuts,
 	# ── inclusive: all jet constituents paired once ─────────────────────────
 	if eec_inclusive is not None:
 		eec_inclusive.n_jets += 1
+		eec_inclusive.sum_jet_pt2 += jet_pt2
 		parts = [p for p in jet.constituents() if p.pt() > pt_particle_min]
 		eec_inclusive.fill(parts, [], jet_pt2)
 
