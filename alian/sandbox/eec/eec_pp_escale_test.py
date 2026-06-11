@@ -22,9 +22,18 @@ from heppyy.pythia_util import configuration as pyconf
 import ROOT
 import math
 import array
+import itertools
 
 from yasp import GenericObject
 from alian.sandbox.root_output import SingleRootFile
+
+
+def iter_all_pairs_with_symmetry(constituents):
+	"""Yield unique constituent pairs with a factor reproducing ordered (i, j) counting."""
+	n = len(constituents)
+	for i, j in itertools.combinations_with_replacement(range(n), 2):
+		factor = 1.0 if i == j else 2.0
+		yield constituents[i], constituents[j], factor
 
 def main():
 	parser = argparse.ArgumentParser(description='pythia8 fastjet on the fly', prog=os.path.basename(__file__))
@@ -56,7 +65,7 @@ def main():
 	fout = SingleRootFile(args.output)
 	fout.root_file.cd()
 
-	nbins = 15
+	nbins = 7
 	# EEC
 	eec_hist = ROOT.TH1F("eec", "EEC", nbins, logbins(0.01, 1.0, nbins))
 	eec_hist.GetXaxis().SetTitle("R_{L}")
@@ -97,14 +106,16 @@ def main():
 		for jet in jets:
 			count_jets += 1
 			# compute EEC for this jet
-			constituents = part_selector(jet.constituents())
-			for i, p1 in enumerate(constituents):
-				for j, p2 in enumerate(constituents):
-					dR = p1.delta_R(p2)
-					eec = (p1.perp() * p2.perp()) / (jet.perp() * jet.perp())
-					eec_hist.Fill(dR, eec)
-					eec_reweight = (p1.perp() * p2.perp()) / ((jet.perp() + scale_shift) * (jet.perp() + scale_shift))
-					eec_hist_scale_shift_weight_only.Fill(dR, eec_reweight)
+			constituents = list(part_selector(jet.constituents()))
+			jet_pt = jet.perp()
+			den_nom = jet_pt * jet_pt
+			den_shift = (jet_pt + scale_shift) * (jet_pt + scale_shift)
+			for p1, p2, factor in iter_all_pairs_with_symmetry(constituents):
+				dR = p1.delta_R(p2)
+				eec = factor * (p1.perp() * p2.perp()) / den_nom
+				eec_hist.Fill(dR, eec)
+				eec_reweight = factor * (p1.perp() * p2.perp()) / den_shift
+				eec_hist_scale_shift_weight_only.Fill(dR, eec_reweight)
 
 		jets = jet_selector_scale_shift(jets_all)
 		if len(jets) == 0:
@@ -112,12 +123,13 @@ def main():
 		for jet in jets:
 			count_jets_scale_shift += 1
 			# compute EEC for this jet
-			constituents = part_selector(jet.constituents())
-			for i, p1 in enumerate(constituents):
-				for j, p2 in enumerate(constituents):
-					dR = p1.delta_R(p2)
-					eec = (p1.perp() * p2.perp()) / ((jet.perp() + scale_shift) * (jet.perp() + scale_shift))
-					eec_hist_scale_shift.Fill(dR, eec)
+			constituents = list(part_selector(jet.constituents()))
+			den_nom = jet.perp() * jet.perp()
+			for p1, p2, factor in iter_all_pairs_with_symmetry(constituents):
+				dR = p1.delta_R(p2)
+				# eec = factor * (p1.perp() * p2.perp()) / ((jet.perp() + scale_shift) * (jet.perp() + scale_shift))
+				eec = factor * (p1.perp() * p2.perp()) / den_nom
+				eec_hist_scale_shift.Fill(dR, eec)
      
 		pbar.update(1)
    
