@@ -1,10 +1,61 @@
+import argparse
 import ROOT
 import uproot
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
+parser = argparse.ArgumentParser(description='Draw normalized z_r distributions and ratios.')
+parser.add_argument(
+    '--normalize-zr-gt', '--norm-zr-min',
+    dest='norm_zr_gt',
+    nargs='?',
+    const=0.7,
+    default=None,
+    type=float,
+    help='Normalize each distribution to the selected yield with that z_r variable above this value. '
+         'If passed without a value, uses 0.7.',
+)
+args = parser.parse_args()
+
 branches = ['pt', 'lzr01', 'lzr02']
+printed_norms = set()
+
+
+def normalize_hist(raw_counts, values, var, sample):
+    if args.norm_zr_gt is None:
+        norm = len(values)
+    else:
+        norm = np.count_nonzero((values > args.norm_zr_gt) & (values <= bins[-1]))
+        norm_key = (sample, var)
+        if norm_key not in printed_norms:
+            print(f'Normalization entries for {sample} {var} > {args.norm_zr_gt:g}: {norm}')
+            printed_norms.add(norm_key)
+
+    if norm <= 0:
+        raise ValueError(f'No entries available for {sample} {var} normalization')
+
+    hist = raw_counts.astype(float) / norm
+    err = np.sqrt(raw_counts).astype(float) / norm
+    return hist, err
+
+
+def norm_ylabel(var):
+    if args.norm_zr_gt is None:
+        return f'(1/N) dN/d{var}'
+    return f'(1/N({var}>{args.norm_zr_gt:g})) dN/d{var}'
+
+
+def norm_title(var):
+    if args.norm_zr_gt is None:
+        return 'normalized'
+    return f'normalized to {var} > {args.norm_zr_gt:g}'
+
+
+def ratio_title(var):
+    if args.norm_zr_gt is None:
+        return f'{var} ratio [100,120)/[120,140)'
+    return f'{var} ratio [100,120)/[120,140), norm {var}>{args.norm_zr_gt:g}'
 
 with uproot.open('pythia_zr_pthatmin100.root') as f:
     arr100 = f['tnR04'].arrays(branches, library='np')
@@ -29,13 +80,13 @@ bins = np.concatenate((
 
 # --- individual plots with ratio panels ---
 for var in ['lzr01', 'lzr02']:
-    h100_raw, edges = np.histogram(arr100[var][sel100], bins=bins)
-    h120_raw, _     = np.histogram(arr120[var][sel120], bins=bins)
+    vals100 = arr100[var][sel100]
+    vals120 = arr120[var][sel120]
+    h100_raw, edges = np.histogram(vals100, bins=bins)
+    h120_raw, _     = np.histogram(vals120, bins=bins)
 
-    h100 = h100_raw.astype(float) / n100
-    h120 = h120_raw.astype(float) / n120
-    e100 = np.sqrt(h100_raw).astype(float) / n100
-    e120 = np.sqrt(h120_raw).astype(float) / n120
+    h100, e100 = normalize_hist(h100_raw, vals100, var, 'pthat100')
+    h120, e120 = normalize_hist(h120_raw, vals120, var, 'pthat120')
 
     centers = 0.5 * (edges[:-1] + edges[1:])
     widths  = np.diff(edges)
@@ -58,9 +109,9 @@ for var in ['lzr01', 'lzr02']:
     ax0.errorbar(centers, h100, yerr=e100, fmt='none', ecolor='steelblue', capsize=3)
     ax0.bar(centers, h120, width=widths, alpha=0.4, color='tomato', label=r'$p_T \in [120,140)$ GeV')
     ax0.errorbar(centers, h120, yerr=e120, fmt='none', ecolor='tomato', capsize=3)
-    ax0.set_ylabel('(1/N) dN/d' + var)
+    ax0.set_ylabel(norm_ylabel(var))
     ax0.legend()
-    ax0.set_title(f'tnR04 — {var}, normalized')
+    ax0.set_title(f'tnR04 — {var}, {norm_title(var)}')
     plt.setp(ax0.get_xticklabels(), visible=False)
 
     ax1.axhline(1, color='k', lw=0.8, ls='--')
@@ -82,13 +133,13 @@ colors = {'lzr01': 'steelblue', 'lzr02': 'tomato'}
 fout = ROOT.TFile('zr_ratios.root', 'RECREATE')
 
 for var in ['lzr01', 'lzr02']:
-    h100_raw, edges = np.histogram(arr100[var][sel100], bins=bins)
-    h120_raw, _     = np.histogram(arr120[var][sel120], bins=bins)
+    vals100 = arr100[var][sel100]
+    vals120 = arr120[var][sel120]
+    h100_raw, edges = np.histogram(vals100, bins=bins)
+    h120_raw, _     = np.histogram(vals120, bins=bins)
 
-    h100 = h100_raw.astype(float) / n100
-    h120 = h120_raw.astype(float) / n120
-    e100 = np.sqrt(h100_raw).astype(float) / n100
-    e120 = np.sqrt(h120_raw).astype(float) / n120
+    h100, e100 = normalize_hist(h100_raw, vals100, var, 'pthat100')
+    h120, e120 = normalize_hist(h120_raw, vals120, var, 'pthat120')
 
     centers = 0.5 * (edges[:-1] + edges[1:])
     ex      = np.zeros_like(centers)
@@ -112,13 +163,13 @@ for var in ['lzr01', 'lzr02']:
                           ex.astype('d'),
                           np.nan_to_num(e_ratio).astype('d'))
     g.SetName(f'ratio_{var}')
-    g.SetTitle(f'{var} ratio [100,120)/[120,140);z_{{r}};ratio')
+    g.SetTitle(f'{ratio_title(var)};z_{{r}};ratio')
     g.Write()
 
     # TH1D for normalized distributions
     nbins = len(edges) - 1
     for tag, vals, errs in [('100', h100, e100), ('120', h120, e120)]:
-        th = ROOT.TH1D(f'h_{var}_{tag}', f'{var} pthat{tag};z_{{r}};(1/N) dN/d{var}',
+        th = ROOT.TH1D(f'h_{var}_{tag}', f'{var} pthat{tag};z_{{r}};{norm_ylabel(var)}',
                        nbins, edges.astype('d'))
         for i, (v, e) in enumerate(zip(vals, errs), start=1):
             th.SetBinContent(i, v)
@@ -126,7 +177,7 @@ for var in ['lzr01', 'lzr02']:
         th.Write()
 
     # TH1D for ratio
-    th_ratio = ROOT.TH1D(f'h_ratio_{var}', f'{var} ratio [100,120)/[120,140);z_{{r}};ratio',
+    th_ratio = ROOT.TH1D(f'h_ratio_{var}', f'{ratio_title(var)};z_{{r}};ratio',
                          nbins, edges.astype('d'))
     for i, (v, e) in enumerate(zip(np.nan_to_num(ratio), np.nan_to_num(e_ratio)), start=1):
         th_ratio.SetBinContent(i, v)
@@ -139,7 +190,10 @@ print('Saved zr_ratios.root')
 ax.axhline(1, color='k', lw=0.8, ls='--')
 ax.set_xlabel('z_r')
 ax.set_ylabel('[100,120] / [120,140]')
-ax.set_title('Ratio of normalized distributions (tnR04)')
+if args.norm_zr_gt is None:
+    ax.set_title('Ratio of normalized distributions (tnR04)')
+else:
+    ax.set_title(f'Ratio of distributions normalized to z_r > {args.norm_zr_gt:g} (tnR04)')
 ax.set_ylim(0.5, 1.5)
 ax.set_xlim(0.7, 1.001)
 ax.legend()

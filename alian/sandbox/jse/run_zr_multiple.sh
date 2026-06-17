@@ -12,8 +12,9 @@ function run()
 		local output="pythia_zr_pthatmin${pthatmin}_seed${user_seed}.root"
 		echo "Running with pthatmin=${pthatmin}, seed=${seed}, output=${output}"
 		pthatmax=$((pthatmin + 20))
+		jet_pt_max=$((pthatmin + 50))
 		# yaspenv 
-		python3 pythia_zr.py --nev 10000 --py-hardQCD --py-pthatmin ${pthatmin} --jet-pt-min ${pthatmin} --jet-pt-max ${pthatmax} --output ${output} --py-seed ${seed} 2>&1 | tee "pythia_zr_pthatmin${pthatmin}_seed${user_seed}.log"
+		python3 pythia_zr.py --nev 10000 --py-hardQCD --py-pthatmin ${pthatmin} --jet-pt-min ${pthatmin} --jet-pt-max ${jet_pt_max} --output ${output} --py-seed ${seed} --py-ecm 5360 2>&1 | tee "pythia_zr_pthatmin${pthatmin}_seed${user_seed}.log"
 }
 
 # use GNU parallel to run the function for both pthatmin values
