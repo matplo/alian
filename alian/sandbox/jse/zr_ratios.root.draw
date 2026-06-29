@@ -1,0 +1,62 @@
+#-----------------------
+#figure
+#geom 500x500
+#date
+#title: smart group
+#legend pos=ur
+/Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 		:ratio_lzr01 :p  : title=lzr01 ratio [100,120)/[120,140)
+/Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 		:ratio_lzr02 :p  : title=lzr02 ratio [100,120)/[120,140)
+
+#-----------------------
+#figure
+#geom 500x500
+#date
+#title:
+#legend pos=ul title=PYTHIA8 R=0.4 100GeV ch. part. jet <e-loss> of 20 GeV/c
+#xrange 0.7, 1.001
+#maxy 2.0
+#miny 0.5
+#line 0.7,1,1.001,1.0,1,2
+#y "medium" (e-loss only) / vacuum
+/Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 		:h_ratio_lzr01 :hist l  : title=r=0.1 
+/Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 		:h_ratio_lzr01 :-k +f1001 serror noleg : title=r=0.1 
+
+/Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 		:h_ratio_lzr02 :hist l +k4 : title=r=0.2
+/Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 		:h_ratio_lzr02 :-k +f1001 serror noleg : title=r=0.2 
+
+#-----------------------
+#figure
+#geom 500x500
+#date
+#title:
+#legend pos=ul title=anti-k_{T} R=0.4 100 GeV/c ch. part. jets - subjet r=0.1
+#xrange 0.7, 1.001
+#maxy 2.5
+#miny 0.5
+#line 0.7,1,1.001,1.0,1,2
+#y medium / vacuum
+
+/Users/ploskon/devel/alian/alian/sandbox/jse/from_Luisa_data_zr_100to150.root 		:h_ratio_zr01 :p  : title=ALICE Pb-Pb/pp DATA
+/Users/ploskon/devel/alian/alian/sandbox/jse/from_Luisa_data_zr_100to150.root 		:g_syst_ratio_zr01 :p serror noleg -k : title=Graph
+
+/Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 		:h_ratio_lzr01 :hist l +k4 : title=PYTHIA8 <e-loss> of 20 GeV/c
+/Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 		:h_ratio_lzr01 :-k +f1001 serror noleg : title=r=0.1 
+
+#-----------------------
+#figure
+#geom 500x500
+#date
+#title:
+#legend pos=ul title=anti-k_{T} R=0.4 100 GeV/c ch. part. jets - subjet r=0.2
+#xrange 0.7, 1.001
+#maxy 2.5
+#miny 0.5
+#line 0.7,1,1.001,1.0,1,2
+#y medium / vacuum
+
+/Users/ploskon/devel/alian/alian/sandbox/jse/from_Luisa_data_zr_100to150.root 		:h_ratio_zr02 :p  : title=ALICE Pb-Pb/pp DATA
+/Users/ploskon/devel/alian/alian/sandbox/jse/from_Luisa_data_zr_100to150.root 		:g_syst_ratio_zr02 :p serror noleg -k : title=Graph
+
+/Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 		:h_ratio_lzr02 :hist l +k4 : title=PYTHIA8 <e-loss> of 20 GeV/c
+/Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 		:h_ratio_lzr02 :-k +f1001 serror noleg : title=r=0.2 
+

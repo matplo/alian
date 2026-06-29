@@ -1,0 +1,149 @@
+#-----------------------
+#figure
+#geom 500x500
+#date
+#title: smart group
+#legend pos=ur
+/Users/ploskon/devel/alian/alian/sandbox/jse/save-20bin/zr_ratios.root 									:h_ratio_lzr01_120140 :p  : title=lzr01 ratio [100,120)/[120,140)
+/Users/ploskon/devel/alian/alian/sandbox/jse/save-deltaE-zr/zr_ratios.root 		:ratio_lzr01 :l -k  : title=lzr01 ratio [100,120)/[120,140) - x-check
+/Users/ploskon/devel/alian/alian/sandbox/jse/save-20bin/zr_ratios.root 									:h_ratio_lzr01_115135 :p  : title=lzr01 ratio [100,120)/[115,135)
+
+/Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 									:h_ratio_lzr01_120170 :p  : title=lzr01 ratio [100,150)/[120,170)
+/Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 									:h_ratio_lzr01_115165 :p  : title=lzr01 ratio [100,150)/[115,165)
+
+#-----------------------
+#figure
+#geom 500x500
+#date
+#title: smart group
+#legend pos=ur
+/Users/ploskon/devel/alian/alian/sandbox/jse/save-20bin/zr_ratios.root 									:h_ratio_lzr02_120140 :p  : title=lzr02 ratio [100,120)/[120,140)
+/Users/ploskon/devel/alian/alian/sandbox/jse/save-deltaE-zr/zr_ratios.root 		:ratio_lzr02 :l -k  : title=lzr02 ratio [100,120)/[120,140) - x-check
+/Users/ploskon/devel/alian/alian/sandbox/jse/save-20bin/zr_ratios.root 									:h_ratio_lzr02_115135 :p  : title=lzr02 ratio [100,120)/[115,135)
+
+/Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 									:h_ratio_lzr02_120170 :p  : title=lzr02 ratio [100,150)/[120,170)
+/Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 									:h_ratio_lzr02_115165 :p  : title=lzr02 ratio [100,150)/[115,165)
+
+#-----------------------
+#figure
+#geom 500x500
+#date
+#title:
+#legend pos=ul title=PYTHIA8 R=0.4 100GeV ch. part. jet <e-loss> of 20 GeV/c
+#xrange 0.7, 1.001
+#maxy 2.0
+#miny 0.5
+#line 0.7,1,1.001,1.0,1,2
+#y "medium" (e-loss only) / vacuum
+
+zr_ratios.root 									:h_ratio_lzr01_120170 :hist l  : title=lzr01 ratio [100,150)/[120,170)
+zr_ratios.root 									:h_ratio_lzr01_120170 :-k +f1001 serror noleg  : title=lzr01 ratio [100,150)/[120,170)
+
+zr_ratios.root 									:h_ratio_lzr01_115165 :hist l  : title=lzr01 ratio [100,150)/[115,165)
+zr_ratios.root 									:h_ratio_lzr01_115165 :-k +f1001 serror noleg  : title=lzr01 ratio [100,150)/[115,165)
+
+zr_ratios.root 									:gr_ratio_mean_env_lzr01 :p : title=r=0.1 mean deltaE
+zr_ratios.root 									:h_ratio_mean_lzr01 : hist l : title=r=0.1 mean deltaE
+zr_ratios.root 									:h_ratio_mean_lzr01 : -k +f1001 serror noleg : title=r=0.1 mean deltaE
+zr_ratios.root 									:h_ratio_mean_lzr01 :hist l +w12 +l1 : title=lzr02 ratio [100,150)/[115,165)
+
+zr_ratios.root 									:h_ratio_lzr02_120170 :hist l  : title=lzr02 ratio [100,150)/[120,170)
+zr_ratios.root 									:h_ratio_lzr02_120170 :-k +f1001 serror noleg  : title=lzr01 ratio [100,150)/[120,170)
+
+zr_ratios.root 									:h_ratio_lzr02_115165 :hist l  : title=lzr02 ratio [100,150)/[115,165)
+zr_ratios.root 									:h_ratio_lzr02_115165 :-k +f1001 serror noleg  : title=lzr01 ratio [100,150)/[115,165)
+
+
+zr_ratios.root 									:gr_ratio_mean_env_lzr02 :p : title=r=0.2 mean deltaE
+zr_ratios.root 									:h_ratio_mean_lzr02 : hist l : title=r=0.2 mean deltaE
+zr_ratios.root 									:h_ratio_mean_lzr02 : -k +f1001 serror noleg : title=r=0.2 mean deltaE
+
+save-deltaE-zr/zr_ratios.root 		:h_ratio_lzr01 :hist l +k8 : title=r=0.1 
+#save-deltaE-zr/zr_ratios.root 		:h_ratio_lzr01 :-k +f1001 serror noleg : title=r=0.1 
+
+save-deltaE-zr/zr_ratios.root 		:h_ratio_lzr02 :hist l +k11 : title=r=0.2
+#save-deltaE-zr/zr_ratios.root 		:h_ratio_lzr02 :-k +f1001 serror noleg : title=r=0.2 
+
+#-----------------------
+#figure
+#geom 500x500
+#date
+#title:
+#legend pos=ul title=PYTHIA8 R=0.4 100GeV ch. part. jet <e-loss> of 20 GeV/c
+#xrange 0.7, 1.001
+#maxy 2.0
+#miny 0.5
+#line 0.7,1,1.001,1.0,1,2
+#y "medium" (e-loss only) / vacuum
+
+zr_ratios.root 									:h_ratio_mean_lzr01 :hist l +w12 +l1 : title=lzr02 ratio mean e-loss 15-20
+
+zr_ratios.root 									:h_ratio_lzr01_120170 :hist l  : title=lzr01 ratio [100,150)/[120,170)
+zr_ratios.root 									:h_ratio_lzr01_120170 :-k +f1001 serror noleg  : title=lzr01 ratio [100,150)/[120,170)
+
+zr_ratios.root 									:h_ratio_lzr01_115165 :hist l  : title=lzr01 ratio [100,150)/[115,165)
+zr_ratios.root 									:h_ratio_lzr01_115165 :-k +f1001 serror noleg  : title=lzr01 ratio [100,150)/[115,165)
+
+zr_ratios.root 									:gr_ratio_mean_env_lzr01 :p : title=r=0.1 mean deltaE
+zr_ratios.root 									:h_ratio_mean_lzr01 : hist l : title=r=0.1 mean deltaE
+zr_ratios.root 									:h_ratio_mean_lzr01 : -k +f1001 serror noleg : title=r=0.1 mean deltaE
+
+#-----------------------
+#figure
+#geom 500x500
+#date
+#title:
+#legend pos=ul title=PYTHIA8 R=0.4 100GeV ch. part. jet <e-loss> of 15 or 20 GeV/c
+#xrange 0.7, 1.001
+#maxy 2.0
+#miny 0.5
+#line 0.7,1,1.001,1.0,1,2
+#y "medium" (e-loss only) / vacuum
+/Users/ploskon/devel/alian/alian/sandbox/jse/save-deltaE-zr/zr_ratios.root 		:h_ratio_lzr01 :hist l  : title=r=0.1 
+/Users/ploskon/devel/alian/alian/sandbox/jse/save-deltaE-zr/zr_ratios.root 		:h_ratio_lzr01 :-k +f1001 serror noleg : title=r=0.1 
+
+/Users/ploskon/devel/alian/alian/sandbox/jse/save-deltaE-zr/zr_ratios.root 		:h_ratio_lzr02 :hist l +k4 : title=r=0.2
+/Users/ploskon/devel/alian/alian/sandbox/jse/save-deltaE-zr/zr_ratios.root 		:h_ratio_lzr02 :-k +f1001 serror noleg : title=r=0.2 
+
+#-----------------------
+#figure
+#geom 500x500
+#date
+#title:
+#legend pos=ul title=anti-k_{T} R=0.4 100 GeV/c ch. part. jets - subjet r=0.1
+#xrange 0.7, 1.001
+#maxy 2.5
+#miny 0.5
+#line 0.7,1,1.001,1.0,1,2
+#y medium / vacuum
+
+/Users/ploskon/devel/alian/alian/sandbox/jse/from_Luisa_data_zr_100to150.root 		:h_ratio_zr01 :p  : title=ALICE Pb-Pb/pp DATA
+/Users/ploskon/devel/alian/alian/sandbox/jse/from_Luisa_data_zr_100to150.root 		:g_syst_ratio_zr01 :p serror noleg -k : title=Graph
+
+zr_ratios.root 									:h_ratio_mean_lzr01 :hist l +w12 +l1 +a50 +k4: title=lzr01 ratio mean e-loss 15-20
+# zr_ratios.root 									:gr_ratio_mean_env_lzr01 :p : title=r=0.1 mean deltaE
+
+# /Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 		:h_ratio_lzr01 :hist l +k4 : title=PYTHIA8 <e-loss> of 20 GeV/c
+# /Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 		:h_ratio_lzr01 :-k +f1001 serror noleg : title=r=0.1 
+
+#-----------------------
+#figure
+#geom 500x500
+#date
+#title:
+#legend pos=ul title=anti-k_{T} R=0.4 100 GeV/c ch. part. jets - subjet r=0.2
+#xrange 0.7, 1.001
+#maxy 2.5
+#miny 0.5
+#line 0.7,1,1.001,1.0,1,2
+#y medium / vacuum
+
+/Users/ploskon/devel/alian/alian/sandbox/jse/from_Luisa_data_zr_100to150.root 		:h_ratio_zr02 :p  : title=ALICE Pb-Pb/pp DATA
+/Users/ploskon/devel/alian/alian/sandbox/jse/from_Luisa_data_zr_100to150.root 		:g_syst_ratio_zr02 :p serror noleg -k : title=Graph
+
+zr_ratios.root 									:h_ratio_mean_lzr02 :hist l +w12 +l1 +a50 +k4: title=lzr02 ratio mean e-loss 15-20
+# zr_ratios.root 									:gr_ratio_mean_env_lzr02 :p : title=r=0.2 mean deltaE
+
+# /Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 		:h_ratio_lzr02 :hist l +k4 : title=PYTHIA8 <e-loss> of 20 GeV/c
+# /Users/ploskon/devel/alian/alian/sandbox/jse/zr_ratios.root 		:h_ratio_lzr02 :-k +f1001 serror noleg : title=r=0.2 
+
